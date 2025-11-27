@@ -17,7 +17,7 @@ export const deployAddresses = async (
 ) => {
   try {
     const [fgAddressGroups, fgAddresses] = await Promise.all([
-      firewall
+      firewall.addrgrp
         .getAddressGroups({ vdom: vdom.name })
         .then((res) => res?.results as FortiOSFirewallAddrGrp[] | undefined)
         .catch((error: unknown) => {
@@ -33,7 +33,7 @@ export const deployAddresses = async (
           );
           return undefined;
         }),
-      firewall
+      firewall.address
         .getAddresses({ vdom: vdom.name })
         .then((res) => res?.results as FortiOSFirewallAddress[] | undefined)
         .catch((error: unknown) => {
@@ -59,7 +59,7 @@ export const deployAddresses = async (
             return fortigateAddress.name === address.name;
           })
         ) {
-          await firewall
+          await firewall.address
             .addAddress(address, { vdom: vdom.name })
             .then((_res) => {
               logger.info(
@@ -119,7 +119,7 @@ export const deployAddresses = async (
           },
         };
 
-        await firewall
+        await firewall.addrgrp
           .addAddressGroup(
             {
               name: groupName,
@@ -208,7 +208,7 @@ export const deployAddresses = async (
             },
           };
 
-          await firewall
+          await firewall.addrgrp
             .updateAddressGroup(
               groupName,
               {
@@ -262,7 +262,7 @@ export const deployAddresses6 = async (
 ) => {
   try {
     const fgAddressGroups: FortiOSFirewallAddrGrp6[] | undefined = (
-      await firewall
+      await firewall.addrgrp6
         .getAddressGroups6({ vdom: vdom.name })
         .catch((error: unknown) => {
           logger.warning(
@@ -310,7 +310,7 @@ export const deployAddresses6 = async (
         },
       };
 
-      await firewall
+      await firewall.addrgrp6
         .addAddressGroup6(
           {
             name: groupName,

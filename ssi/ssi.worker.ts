@@ -85,12 +85,12 @@ export class SSIWorker {
         const integrators =
           isDevMode() && NAM_TEST_INT
             ? [
-                (await SSIWorker._nms.getRorIntegrator(NAM_TEST_INT, {
+                (await SSIWorker._nms.ror_integrators.getRorIntegrator(NAM_TEST_INT, {
                   expand: 1,
                 })) as NAMRorIntegrator,
               ]
             : ((
-                await SSIWorker._nms.getRorIntegrators({
+                await SSIWorker._nms.ror_integrators.getRorIntegrators({
                   expand: 1,
                   sync_priority: priority,
                 })
