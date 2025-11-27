@@ -1,10 +1,10 @@
 # ROR-Firewall-SSI
 
-Synchronization service that manages IP address objects between Netbox ROR and firewall systems (FortiOS).
+Synchronization service that manages IP address objects between ROR and firewall systems (FortiOS).
 
 ## Overview
 
-ROR-Firewall-SSI automatically syncs IP prefixes from Netbox to firewall address objects and groups:
+ROR-Firewall-SSI automatically syncs IP addresses from ROR to firewall address objects and groups:
 - **FortiOS**: Creates IPv4/IPv6 addresses and address groups on specified VDOMs
 - **VMware NSX**: Creates and updates security groups with IP address expressions
 - **Automated sync**: Runs on configurable intervals with priority-based execution
@@ -14,7 +14,7 @@ ROR-Firewall-SSI automatically syncs IP prefixes from Netbox to firewall address
 
 - Deno runtime
 - Access to NAM (Network Architecture Management) API
-- ROR instance
+- ROR instance with API access
 - FortiOS firewall(s) with API access
 - Splunk HEC endpoint (optional, for logging)
 
@@ -62,7 +62,7 @@ REQUEST_TIMEOUT: "10000"                   # API request timeout in milliseconds
 
 # NAM (Network Automation Manager) settings
 NAM_URL: "https://nam.example.com/api"     # NAM API endpoint URL
-NAM_TEST_INT: "507f1f77bcf86cd799439011"   # Netbox integrator ID for testing (dev only)
+NAM_TEST_INT: "507f1f77bcf86cd799439011"   # ROR integrator ID for testing (dev only)
 
 # Splunk logging settings
 SPLUNK_URL: "https://splunk.example.com"   # Splunk HEC endpoint
@@ -417,7 +417,7 @@ kubectl logs ror-firewall-ssi -n ssi
 ## How It Works
 
 1. **Initialization**: Worker reads configuration and connects to NAM API
-2. **Fetch Integrators**: Retrieves Netbox integrators based on priority
+2. **Fetch Integrators**: Retrieves ROR integrators based on priority
 3. **Get Control Plane Metadata**: Queries ROR for cluster metadata using integrator queries
 4. **Deploy to FortiOS**:
    - Creates missing IPv4/IPv6 address objects

@@ -7,7 +7,7 @@ data:
   config.yaml: |
     ---
     # Configuration for ROR-Firewall-SSI
-    # Syncs IP address management data from Netbox to FortiOS firewalls
+    # Syncs IP address management data from ROR to FortiOS firewalls
 
     # Environment and SSI settings
     DENO_ENV: "development"                    # Runtime environment: development, production

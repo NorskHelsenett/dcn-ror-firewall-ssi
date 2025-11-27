@@ -73,7 +73,7 @@ export class SSIWorker {
 
   /**
    * Main work method that performs synchronization tasks
-   * Fetches integrators, retrieves prefixes from Netbox, and deploys to firewall systems
+   * Fetches integrators, retrieves prefixes from ROR, and deploys to firewall systems
    * @param priority - Sync priority filter: low, medium, or high
    */
   public async work(priority: string = "low") {
