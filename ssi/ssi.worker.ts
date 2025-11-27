@@ -42,7 +42,7 @@ let ranNumberOfTimes = 0;
 
 /**
  * Main worker class that orchestrates ROR to firewall synchronization
- * Initializes API drivers and coordinates deployment to FortiGate and NSX systems
+ * Initializes API drivers and coordinates deployment to FortiGates
  */
 export class SSIWorker {
   private _running: boolean = false;

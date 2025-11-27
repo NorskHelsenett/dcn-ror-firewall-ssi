@@ -6,7 +6,6 @@ Synchronization service that manages IP address objects between ROR and firewall
 
 ROR-Firewall-SSI automatically syncs IP addresses from ROR to firewall address objects and groups:
 - **FortiOS**: Creates IPv4/IPv6 addresses and address groups on specified VDOMs
-- **VMware NSX**: Creates and updates security groups with IP address expressions
 - **Automated sync**: Runs on configurable intervals with priority-based execution
 - **Flexible execution**: One-shot mode for CronJobs or continuous mode for long-running containers
 
