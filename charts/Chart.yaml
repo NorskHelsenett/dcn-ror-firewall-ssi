@@ -1,0 +1,6 @@
+apiVersion: v2
+name: dcn-ror-firewall-ssi
+description: Network automation sync for ROR to Firewall
+type: application
+version: 0.0.1
+appVersion: "0.0.1"
