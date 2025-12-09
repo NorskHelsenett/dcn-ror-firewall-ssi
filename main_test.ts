@@ -67,7 +67,7 @@ if (Deno.args[0] === "e2e") {
       assertExists(NAM_TEST_INT);
       const worker = new SSIWorker();
       assertEquals(worker.isRunning, false);
-    }
+    },
   );
 
   Deno.test(
@@ -85,7 +85,7 @@ if (Deno.args[0] === "e2e") {
       const result = await worker.work(SSI_PRIORITY);
       assertEquals(result, 0); // Should return 0 on success
       assertEquals(worker.isRunning, false); // Should be false after completion
-    }
+    },
   );
 
   Deno.test("SSIWorker: should handle different priority levels", async () => {

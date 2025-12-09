@@ -8,6 +8,7 @@ import {
   FortiOSFirewallAddress,
   isDevMode,
   NAMAPIEndpoint,
+  NAMRorIntegrator,
   NAMv2Driver,
   RORClusterControlPlaneMetaData,
   RORv1Driver,
@@ -15,7 +16,6 @@ import {
 import https from "node:https";
 import packageInfo from "../deno.json" with { type: "json" };
 import logger from "./loggers/logger.ts";
-import { NAMRorIntegrator } from "@norskhelsenett/zeniki";
 import {
   deployAddresses,
   deployAddresses6,
@@ -82,25 +82,47 @@ export class SSIWorker {
         this._running = true;
         logger.debug("ror-firewall-ssi: Worker running task...");
 
-        const integrators =
-          isDevMode() && NAM_TEST_INT
-            ? [
-                (await SSIWorker._nms.ror_integrators.getRorIntegrator(NAM_TEST_INT, {
-                  expand: 1,
-                })) as NAMRorIntegrator,
-              ]
-            : ((
-                await SSIWorker._nms.ror_integrators.getRorIntegrators({
-                  expand: 1,
-                  sync_priority: priority,
-                })
-              )?.results as NAMRorIntegrator[]);
+        const integrators = isDevMode() && NAM_TEST_INT
+          ? [
+            await SSIWorker._nms.ror_integrators.getRorIntegrator(
+              NAM_TEST_INT,
+              {
+                expand: 1,
+              },
+            ).catch((error) => {
+              logger.error(
+                `ipam-firewall-ssi: Failed fetching integrators on ${Deno.hostname()},  ${error.message} @ ${NAM_URL}`,
+                {
+                  component: "worker",
+                  method: "getNetboxIntegrator",
+                  error: isDevMode() ? error : error.message,
+                },
+              );
+              return;
+            }),
+          ]
+          : ((
+            await SSIWorker._nms.ror_integrators.getRorIntegrators({
+              expand: 1,
+              sync_priority: priority,
+            }).catch((error) => {
+              logger.error(
+                `ipam-firewall-ssi: Failed fetching integrators on ${Deno.hostname()},  ${error.message} @ ${NAM_URL}`,
+                {
+                  component: "worker",
+                  method: "getNetboxIntegrator",
+                  error: isDevMode() ? error : error.message,
+                },
+              );
+              return;
+            })
+          )?.results as NAMRorIntegrator[]) || [];
 
         for (const integrator of integrators) {
-          if (!integrator?.enabled) {
+          if (!integrator || !integrator?.enabled) {
             if (isDevMode() && !NAM_TEST_INT) {
               logger.debug(
-                `ror-firewall-ssi: Skipping disabled integrator '${integrator?.name}'...`
+                `ror-firewall-ssi: Skipping disabled integrator '${integrator?.name}'...`,
               );
             }
             if (!NAM_TEST_INT) {
@@ -114,39 +136,37 @@ export class SSIWorker {
             this._ror = null;
           }
           this._ror = this._configureROR(
-            integrator?.ror_endpoint as NAMAPIEndpoint
+            integrator?.ror_endpoint as NAMAPIEndpoint,
           );
 
           if (isDevMode()) {
             logger.debug(
-              "ror-firewall-ssi: Preparing Control Plane Metadata ip addresses from ROR..."
+              "ror-firewall-ssi: Preparing Control Plane Metadata ip addresses from ROR...",
             );
           }
 
-          const clusterMetadata =
-            (await this._ror.getControlplanesMetadata().catch((error) => {
+          const clusterMetadata = await this._ror.getControlplanesMetadata()
+            .catch((error) => {
               logger.warning(
-                `ror-firewall-ssi: Could not retrieve Control Plane Metadata ip addresses from ROR '${this?._ror?.getHostname()}' due to ${
-                  error.message
-                } `,
+                `ror-firewall-ssi: Could not retrieve Control Plane Metadata ip addresses from ROR '${this?._ror?.getHostname()}' due to ${error.message} `,
                 {
                   component: "ssi.worker",
                   method: "work",
                   error: isDevMode() ? error : error.message,
-                }
+                },
               );
-            })) || [];
+              return;
+            });
 
           if (!clusterMetadata) {
-            if (isDevMode()) {
-              logger.debug(
-                `ror-firewall-ssi: Skipping due to missing prefixes for '${integrator?.name}'...`
-              );
-            }
+            logger.info(
+              `ror-firewall-ssi: Skipping due to missing cluster metadata for '${integrator?.name}'...`,
+            );
+            continue;
           }
 
           if (
-            // integrator?.create_fg_group &&
+            integrator &&
             integrator?.fortigate_endpoints.length > 0
           ) {
             if (isDevMode()) {
@@ -158,7 +178,7 @@ export class SSIWorker {
                 return (
                   cluster.datacenter &&
                   cluster.datacenter.name.includes(
-                    integrator.dc.toLowerCase()
+                    integrator.dc.toLowerCase(),
                   ) &&
                   cluster.controlPlaneEndpoint.ipv4 &&
                   !cluster.environment.includes("prod") &&
@@ -168,9 +188,11 @@ export class SSIWorker {
               .map((cluster: RORClusterControlPlaneMetaData) => {
                 return {
                   name: "host_k8s_cpep_" + cluster.clusterId,
-                  subnet: `${cluster.controlPlaneEndpoint.ipv4} 255.255.255.255`,
+                  subnet:
+                    `${cluster.controlPlaneEndpoint.ipv4} 255.255.255.255`,
                   color: 0,
-                  comment: `Project: ${cluster.projectName} Cluster name: ${cluster.clusterName} Cluster ID: ${cluster.clusterId}`,
+                  comment:
+                    `Project: ${cluster.projectName} Cluster name: ${cluster.clusterName} Cluster ID: ${cluster.clusterId}`,
                 } as FortiOSFirewallAddress;
               });
 
@@ -180,7 +202,7 @@ export class SSIWorker {
 
               if (!fortigate || !vdoms || vdoms.length === 0) {
                 logger.warning(
-                  `ror-firewall-ssi: Invalid Fortigate endpoint configured for '${integrator.name}'. Check your configuration in NAM.`
+                  `ror-firewall-ssi: Invalid Fortigate endpoint configured for '${integrator.name}'. Check your configuration in NAM.`,
                 );
                 continue;
               }
@@ -200,16 +222,16 @@ export class SSIWorker {
                         this._firewall as FortiOSDriver,
                         vdom,
                         integrator,
-                        ipv4Cpeps
+                        ipv4Cpeps,
                       ),
                       deployAddresses6(
                         this._firewall as FortiOSDriver,
                         vdom,
                         integrator,
-                        []
+                        [],
                       ),
                     ])
-                  )
+                  ),
                 );
               }
             }
@@ -220,18 +242,17 @@ export class SSIWorker {
         // Final cleanup - clear integrators array
         if (isDevMode()) {
           logger.debug(
-            `ror-firewall-ssi: Cleaning up integrators array (${integrators.length} integrators processed)`
+            `ror-firewall-ssi: Cleaning up integrators array (${integrators.length} integrators processed)`,
           );
-          
         }
-        
+
         integrators.length = 0;
 
         this._running = false;
         this._resetDriverInstances();
         logger.debug("ror-firewall-ssi: Worker task completed...");
         console.log(
-          `ror-firewall-ssi: Completed run number ${(ranNumberOfTimes += 1)}`
+          `ror-firewall-ssi: Completed run number ${(ranNumberOfTimes += 1)}`,
         );
         return 0;
       } else {
@@ -241,7 +262,7 @@ export class SSIWorker {
     } catch (error) {
       this._running = false;
       console.log(
-        `ror-firewall-ssi: Completed run number ${(ranNumberOfTimes += 1)}`
+        `ror-firewall-ssi: Completed run number ${(ranNumberOfTimes += 1)}`,
       );
       throw error;
     }
@@ -292,7 +313,7 @@ export class SSIWorker {
       logger.warning(
         `ror-firewall-ssi: Error could not reset one or more driver instances, ${
           (error as Error).message
-        }`
+        }`,
       );
     }
   }
