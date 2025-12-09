@@ -1,11 +1,11 @@
 import {
   FortiOSDriver,
+  FortiOSFirewallAddress,
   FortiOSFirewallAddrGrp,
   FortiOSFirewallAddrGrp6,
-  FortiOSFirewallAddress,
+  isDevMode,
   NAMFortiOSVdom,
   NAMRorIntegrator,
-  isDevMode,
 } from "@norskhelsenett/zeniki";
 import logger from "../loggers/logger.ts";
 
@@ -13,7 +13,7 @@ export const deployAddresses = async (
   firewall: FortiOSDriver,
   vdom: NAMFortiOSVdom,
   integrator: NAMRorIntegrator,
-  addresses: FortiOSFirewallAddress[]
+  addresses: FortiOSFirewallAddress[],
 ) => {
   try {
     const [fgAddressGroups, fgAddresses] = await Promise.all([
@@ -22,14 +22,12 @@ export const deployAddresses = async (
         .then((res) => res?.results as FortiOSFirewallAddrGrp[] | undefined)
         .catch((error: unknown) => {
           logger.warning(
-            `ror-firewall-ssi: Failed getting IPv4 address groups from '${
-              integrator.name
-            }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+            `ror-firewall-ssi: Failed getting IPv4 address groups from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
             {
               component: "fortios.service",
               method: "deployAddresses",
               error: isDevMode() ? error : (error as Error).message,
-            }
+            },
           );
           return undefined;
         }),
@@ -38,14 +36,12 @@ export const deployAddresses = async (
         .then((res) => res?.results as FortiOSFirewallAddress[] | undefined)
         .catch((error: unknown) => {
           logger.warning(
-            `ror-firewall-ssi: Failed getting IPv4 addresses from '${
-              integrator.name
-            }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+            `ror-firewall-ssi: Failed getting IPv4 addresses from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
             {
               component: "fortios.service",
               method: "deployAddresses",
               error: isDevMode() ? error : (error as Error).message,
-            }
+            },
           );
           return undefined;
         }),
@@ -63,25 +59,17 @@ export const deployAddresses = async (
             .addAddress(address, { vdom: vdom.name })
             .then((_res) => {
               logger.info(
-                `ror-firewall-ssi: Created IPv4 address '${
-                  address.name
-                }' from '${
-                  integrator.name
-                }' on '${firewall.getHostname()}' vdom '${vdom.name}'`
+                `ror-firewall-ssi: Created IPv4 address '${address.name}' from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
               );
             })
             .catch((error: unknown) => {
               logger.error(
-                `ror-firewall-ssi: Failed to create IPv4 address '${
-                  address.name
-                }' from '${
-                  integrator.name
-                }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+                `ror-firewall-ssi: Failed to create IPv4 address '${address.name}' from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
                 {
                   component: "fortios.service",
                   method: "deployAddresses",
                   error: isDevMode() ? error : (error as Error).message,
-                }
+                },
               );
             });
         }
@@ -129,38 +117,34 @@ export const deployAddresses = async (
                 return { name: address.name };
               }),
             },
-            { vdom: vdom.name }
+            { vdom: vdom.name },
           )
           .then((_res) => {
             logger.info(
-              `ror-firewall-ssi: Created IPv4 address group from '${
-                integrator.name
-              }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+              `ror-firewall-ssi: Created IPv4 address group from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
               {
                 component: "fortios.service",
                 method: "deployAddresses",
                 ...meta,
-              }
+              },
             );
           })
           .catch((error: unknown) => {
             logger.error(
-              `ror-firewall-ssi: Creation of IPv4 address group failed from '${
-                integrator.name
-              }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+              `ror-firewall-ssi: Creation of IPv4 address group failed from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
               {
                 component: "fortios.service",
                 method: "deployAddresses",
                 ...meta,
                 error: isDevMode() ? error : (error as Error).message,
-              }
+              },
             );
           });
       } else {
         const fortigateIpv4AddressGroup = fgAddressGroups?.find(
           (addressGroup: FortiOSFirewallAddrGrp) => {
             return addressGroup.name === groupName;
-          }
+          },
         ) as FortiOSFirewallAddrGrp;
 
         //Find members only present in ROR
@@ -168,8 +152,8 @@ export const deployAddresses = async (
           (rorAddress: FortiOSFirewallAddress) =>
             !fortigateIpv4AddressGroup.member.some(
               (fortigateMember: { name: string }) =>
-                fortigateMember.name === rorAddress.name
-            )
+                fortigateMember.name === rorAddress.name,
+            ),
         );
 
         //Find members only present in Fortigate
@@ -177,8 +161,8 @@ export const deployAddresses = async (
           (fortigateMember: { name: string }) =>
             !addresses.some(
               (rorAddress: FortiOSFirewallAddress) =>
-                rorAddress.name === fortigateMember.name
-            )
+                rorAddress.name === fortigateMember.name,
+            ),
         );
 
         if (added.length > 0 || deleted.length > 0) {
@@ -219,31 +203,27 @@ export const deployAddresses = async (
                   return { name: address.name };
                 }),
               },
-              { vdom: vdom.name }
+              { vdom: vdom.name },
             )
             .then((_res) => {
               logger.info(
-                `ror-firewall-ssi: Updated IPv4 address group from '${
-                  integrator.name
-                }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+                `ror-firewall-ssi: Updated IPv4 address group from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
                 {
                   component: "fortios.service",
                   method: "deployAddresses",
                   ...meta,
-                }
+                },
               );
             })
             .catch((error: unknown) => {
               logger.error(
-                `ror-firewall-ssi: Updated IPv4 address group failed from '${
-                  integrator.name
-                }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+                `ror-firewall-ssi: Updated IPv4 address group failed from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
                 {
                   component: "fortios.service",
                   method: "deployAddresses",
                   ...meta,
                   error: isDevMode() ? error : (error as Error).message,
-                }
+                },
               );
             });
         }
@@ -258,7 +238,7 @@ export const deployAddresses6 = async (
   firewall: FortiOSDriver,
   vdom: NAMFortiOSVdom,
   integrator: NAMRorIntegrator,
-  addresses: FortiOSFirewallAddress[]
+  addresses: FortiOSFirewallAddress[],
 ) => {
   try {
     const fgAddressGroups: FortiOSFirewallAddrGrp6[] | undefined = (
@@ -266,14 +246,12 @@ export const deployAddresses6 = async (
         .getAddressGroups6({ vdom: vdom.name })
         .catch((error: unknown) => {
           logger.warning(
-            `ror-firewall-ssi: Failed getting IPv6 address groups from '${
-              integrator.name
-            }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+            `ror-firewall-ssi: Failed getting IPv6 address groups from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
             {
               component: "fortios.service",
               method: "deployAddresses",
               error: isDevMode() ? error : (error as Error).message,
-            }
+            },
           );
         })
     )?.results;
@@ -318,31 +296,27 @@ export const deployAddresses6 = async (
             color: 3,
             member: [],
           },
-          { vdom: vdom.name }
+          { vdom: vdom.name },
         )
         .then((_res) => {
           logger.info(
-            `ror-firewall-ssi: Created IPv6 address group from '${
-              integrator.name
-            }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+            `ror-firewall-ssi: Created IPv6 address group from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
             {
               component: "fortios.service",
               method: "deployAddresses6",
               ...meta,
-            }
+            },
           );
         })
         .catch((error: unknown) => {
           logger.error(
-            `ror-firewall-ssi: Creation of IPv6 address group failed from '${
-              integrator.name
-            }' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
+            `ror-firewall-ssi: Creation of IPv6 address group failed from '${integrator.name}' on '${firewall.getHostname()}' vdom '${vdom.name}'`,
             {
               component: "fortios.service",
               method: "deployAddresses6",
               ...meta,
               error: isDevMode() ? error : (error as Error).message,
-            }
+            },
           );
         });
     }
